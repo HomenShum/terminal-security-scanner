@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.tsbuildinfo
+security-audit-report.json
+.env
+.env.*

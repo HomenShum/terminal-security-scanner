@@ -1,0 +1,39 @@
+{
+  "name": "terminal-security-scanner",
+  "version": "1.0.0",
+  "description": "AI agent that scans your dev environment for homograph attacks, ANSI injections, and suspicious URL patterns in shell history, dotfiles, and CI scripts.",
+  "type": "module",
+  "bin": {
+    "terminal-security-scanner": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "scan": "tsx src/index.ts",
+    "scan:verbose": "tsx src/index.ts --verbose",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "security",
+    "terminal",
+    "homograph",
+    "ansi-injection",
+    "scanner",
+    "devtools",
+    "nodebench-mcp"
+  ],
+  "license": "MIT",
+  "author": "NodeBench",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
