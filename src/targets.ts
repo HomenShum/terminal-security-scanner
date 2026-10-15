@@ -155,21 +155,24 @@ function findShellScripts(projectRoot: string, maxDepth = 3): string[] {
  * Discover all scannable targets in the user's environment.
  *
  * @param projectRoot - Optional project directory to scan for CI/scripts
+ * @param includeHome - Discover personal shell history and dotfiles (default true)
  * @returns Array of discovered scan targets
  */
-export function discoverTargets(projectRoot?: string): ScanTarget[] {
+export function discoverTargets(projectRoot?: string, includeHome = true): ScanTarget[] {
   const targets: ScanTarget[] = [];
 
-  // 1. Shell history
-  for (const histFile of SHELL_HISTORY_FILES) {
-    const target = discoverTarget(histFile, "shell_history");
-    if (target) targets.push(target);
-  }
+  if (includeHome) {
+    // 1. Shell history
+    for (const histFile of SHELL_HISTORY_FILES) {
+      const target = discoverTarget(histFile, "shell_history");
+      if (target) targets.push(target);
+    }
 
-  // 2. Dotfiles
-  for (const dotfile of DOTFILES) {
-    const target = discoverTarget(dotfile, "dotfile");
-    if (target) targets.push(target);
+    // 2. Dotfiles
+    for (const dotfile of DOTFILES) {
+      const target = discoverTarget(dotfile, "dotfile");
+      if (target) targets.push(target);
+    }
   }
 
   // 3. CI configuration (project-relative)
