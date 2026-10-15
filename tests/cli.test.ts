@@ -128,3 +128,60 @@ describe("Developer project scans without personal home discovery", () => {
     }
   }, 30_000);
 });
+
+describe("Incomplete discovered-file reads", () => {
+  it("fails before publishing JSON or replacing the prior report when a discovered file disappears", async () => {
+    const folder = project(path.join(fixture, "read-failure"), true, true);
+    const reportPath = path.join(folder, "security-audit-report.json");
+    const priorReport = JSON.stringify({
+      timestamp: "2026-01-01T00:00:00.000Z", targetsScanned: 1, totalFindings: 0,
+      bySeverity: { HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0 }, byDetector: {}, byCategory: {},
+      findings: [], targets: [], summary: "Previous successful synthetic scan",
+    });
+    fs.writeFileSync(reportPath, priorReport);
+    const trace = path.join(fixture, "read-failure-access.json");
+    const raceTrace = path.join(fixture, "read-failure-race.json");
+    const raceGuard = path.join(fixture, "read-failure-guard.cjs");
+    fs.writeFileSync(raceGuard, [
+      "const fs = require('node:fs');",
+      "const path = require('node:path');",
+      "const root = fs.realpathSync(process.env.SCANNER_TEST_ROOT);",
+      "const project = fs.realpathSync(process.env.SCANNER_RACE_PROJECT);",
+      "const target = path.resolve(project, 'build.sh');",
+      "const trace = path.resolve(process.env.SCANNER_RACE_TRACE);",
+      "if (!project.startsWith(root + path.sep) || path.dirname(trace) !== root) throw new Error('owned race fixture guard failed');",
+      "const stat = fs.statSync, read = fs.readFileSync, write = fs.writeFileSync;",
+      "const state = { stats: 0, removed: false, code: null };",
+      "fs.statSync = function(file, ...args) { const result = stat(file, ...args); if (typeof file === 'string' && path.resolve(file) === target && result.isFile()) state.stats++; return result; };",
+      "fs.readFileSync = function(file, ...args) {",
+      "  if (typeof file === 'string' && path.resolve(file) === target) {",
+      "    if (!state.stats || state.removed || fs.realpathSync(path.dirname(target)) !== project || !fs.lstatSync(target).isFile() || read(target, 'utf8') !== 'echo clean-fixture\\n') throw new Error('exact owned target guard failed');",
+      "    fs.unlinkSync(target); state.removed = true;",
+      "    try { return read(file, ...args); } catch (error) { state.code = error.code; throw error; }",
+      "  }",
+      "  return read(file, ...args);",
+      "};",
+      "require('node:module').syncBuiltinESMExports();",
+      "process.on('exit', () => write(trace, JSON.stringify(state)));",
+    ].join("\n"));
+    const runtimeEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+      ["PATH", "SystemRoot", "WINDIR", "COMSPEC", "PATHEXT"].includes(key)));
+    const result = await new Promise<{ code: string | number | null; stdout: string; stderr: string }>((resolve) => {
+      execFile(process.execPath, [tsxCli, "--require", guard, "--require", raceGuard, "src/index.ts", "--project", folder, "--json", "--no-home"], {
+        cwd: process.cwd(),
+        env: { ...runtimeEnv, HOME: home, USERPROFILE: home, TEMP: temp, TMP: temp, SCANNER_TEST_HOME: home, SCANNER_TEST_TRACE: trace, SCANNER_TEST_ROOT: fixture, SCANNER_RACE_PROJECT: folder, SCANNER_RACE_TRACE: raceTrace },
+        timeout: 15_000, maxBuffer: 1024 * 1024, encoding: "utf8", windowsHide: true,
+      }, (error, stdout, stderr) => resolve({ code: error ? error.code ?? null : 0, stdout, stderr }));
+    });
+    expect(result.code).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("Unable to read scan target");
+    expect(result.stderr).toContain("ENOENT");
+    expect(fs.readFileSync(reportPath, "utf8")).toBe(priorReport);
+    const race = JSON.parse(fs.readFileSync(raceTrace, "utf8"));
+    expect(race.stats).toBeGreaterThan(0);
+    expect(race.removed).toBe(true);
+    expect(race.code).toBe("ENOENT");
+    expect(JSON.parse(fs.readFileSync(trace, "utf8"))).toEqual({ homeVerified: true, access: [] });
+  }, 15_000);
+});

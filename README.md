@@ -53,8 +53,10 @@ is inside your home directory or a directory sharing its name prefix.
 JSON and verbose output can contain source snippets, including environment values and command
 history. Each scan also writes `security-audit-report.json` in the project directory, falling
 back to the system temporary directory if needed. Keep reports private and redact them before
-sharing. The CLI exits with code 1 when HIGH findings exist and 0 otherwise; a result is limited
-to the files and content the scanner could read.
+sharing. The CLI exits with code 1 when HIGH findings exist or a discovered file cannot be read.
+A read failure stops the scan before new JSON or a report is published, so an existing report
+may belong to an earlier successful run; check the command exit before trusting it. A result
+is limited to the files and content the scanner could read.
 
 ## Historical Example (Results Not Reproduced Here)
 

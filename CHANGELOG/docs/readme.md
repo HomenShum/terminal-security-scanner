@@ -1,5 +1,13 @@
 # First-run documentation
 
+## 2026-10-15 — Explain failed reads and reports from earlier runs
+
+Document that unreadable discovered files make the command fail before a new report is written.
+An existing report can therefore be the last successful scan, not proof that the failed run was
+clean; users must check the command's result.
+**Commit**: this entry's commit (see `git log --follow`). **Author**: Codex.
+**Touches**: [File reading](../scripts/targets.md), [CLI scenarios](../tests/cli.md).
+
 ## 2026-10-15 — Document locked setup and private scan boundaries
 
 Start newcomers with checkout, npm ci, build and local help before scanning. Explain personal

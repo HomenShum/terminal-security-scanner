@@ -223,13 +223,16 @@ export function readTarget(target: ScanTarget): string {
   try {
     if (target.sizeBytes > MAX_READ) {
       const fd = fs.openSync(target.path, "r");
-      const buffer = Buffer.alloc(MAX_READ);
-      fs.readSync(fd, buffer, 0, MAX_READ, 0);
-      fs.closeSync(fd);
-      return buffer.toString("utf-8");
+      try {
+        const buffer = Buffer.alloc(MAX_READ);
+        fs.readSync(fd, buffer, 0, MAX_READ, 0);
+        return buffer.toString("utf-8");
+      } finally {
+        fs.closeSync(fd);
+      }
     }
     return fs.readFileSync(target.path, "utf-8");
-  } catch {
-    return "";
+  } catch (error) {
+    throw new Error("Unable to read scan target: " + target.path, { cause: error });
   }
 }

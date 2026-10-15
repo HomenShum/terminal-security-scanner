@@ -1,5 +1,13 @@
 # CLI regression scenarios
 
+## 2026-10-15 — Reject clean output after a discovered file disappears
+
+Run one guarded synthetic CLI scenario that removes an owned file after discovery and before
+reading. Require unsuccessful exit, the original read error, no clean JSON and unchanged prior
+report bytes; preserve the original default/no-home, burst and repeated-scan scenarios.
+**Commit**: this entry's commit (see `git log --follow`). **Author**: Codex.
+**Touches**: [File reading](../scripts/targets.md), [README](../docs/readme.md).
+
 ## 2026-10-15 — Delegate runtime loading to the installed tsx CLI
 
 Resolve the existing `tsx/cli` export and forward `--require` to the scanner child so the
