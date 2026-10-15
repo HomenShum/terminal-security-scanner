@@ -19,7 +19,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import { scanContent, type Finding } from "./detectors.js";
-import { discoverTargets, readTarget, type ScanTarget } from "./targets.js";
+import { discoverTargets, readTarget } from "./targets.js";
 import { generateReport, printReport, type AuditReport } from "./report.js";
 
 // ── CLI argument parsing ──────────────────────────────────────────────
@@ -75,13 +75,7 @@ function run(): AuditReport {
     console.log("Discovering scan targets...");
   }
 
-  let targets = discoverTargets(projectRoot);
-
-  // Filter out home directory targets if --no-home
-  if (skipHome) {
-    const home = os.homedir();
-    targets = targets.filter((t) => !t.path.startsWith(home));
-  }
+  const targets = discoverTargets(projectRoot, !skipHome);
 
   if (!jsonOutput) {
     console.log(`Found ${targets.length} files to scan.`);

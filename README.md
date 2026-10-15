@@ -19,23 +19,48 @@ Built as a weekend project inspired by [Tirith](https://github.com/sheeki03/tiri
 
 ## Quick Start
 
+Requires Node.js 18 or newer. Start from a checkout and install the locked dependencies:
+
 ```bash
-# Scan current project + home directory
-npx tsx src/index.ts
-
-# Scan a specific project
-npx tsx src/index.ts --project ./my-app
-
-# Verbose output with all details
-npx tsx src/index.ts --verbose
-
-# JSON output for CI integration
-npx tsx src/index.ts --json
+git clone https://github.com/HomenShum/terminal-security-scanner.git
+cd terminal-security-scanner
+npm ci
+npm run build
+npm start -- --help
 ```
 
-## What We Found (Real Results)
+Then use the local scanner:
 
-We ran this against our own production repository ([nodebench-ai](https://github.com/nodebench/nodebench-ai)) — 19 files scanned in 24ms:
+```bash
+# Scan current project + home directory
+npm run scan
+
+# Scan a specific project without personal history or dotfiles
+npm run scan -- --project ./my-app --no-home
+
+# Verbose output with all details
+npm run scan -- --verbose
+
+# JSON output for CI integration
+npm run scan -- --project ./my-app --no-home --json
+```
+
+By default, the scanner reads personal shell history and dotfiles as well as project files.
+`--no-home` skips discovery of those personal targets, including their file metadata. The
+requested project's CI files, scripts and environment files are still scanned when the project
+is inside your home directory or a directory sharing its name prefix.
+
+JSON and verbose output can contain source snippets, including environment values and command
+history. Each scan also writes `security-audit-report.json` in the project directory, falling
+back to the system temporary directory if needed. Keep reports private and redact them before
+sharing. The CLI exits with code 1 when HIGH findings exist or a discovered file cannot be read.
+A read failure stops the scan before new JSON or a report is published, so an existing report
+may belong to an earlier successful run; check the command exit before trusting it. A result
+is limited to the files and content the scanner could read.
+
+## Historical Example (Results Not Reproduced Here)
+
+We ran this against our own production repository ([nodebench-ai](https://github.com/HomenShum/NodeBenchAI)) — 19 files scanned in 24ms:
 
 **1 HIGH severity finding:**
 - **BOM (U+FEFF) at column 1 of `.env.local`** — An invisible byte-order mark at the very start of the environment file. This causes the first variable to silently fail to parse in many `.env` loaders. The variable name becomes `\uFEFF# Deployment...` instead of `# Deployment...`. Most editors don't show it. Most linters don't catch it.
@@ -85,7 +110,10 @@ If you're using [nodebench-mcp](https://www.npmjs.com/package/nodebench-mcp), th
 npm test
 ```
 
-21 tests covering all three detector engines with both positive detection and clean-file verification.
+Detector tests cover all three engines with positive detection and clean-file verification.
+Real CLI tests use a verified synthetic home directory to check project locations, personal
+metadata exclusion, default home scanning, missing optional files, concurrent bursts and
+repeated report writes. The local verification for this change used Node.js 22 on Windows.
 
 ## Options
 
@@ -93,7 +121,7 @@ npm test
 --project <path>   Project directory to scan (default: current directory)
 --verbose, -v      Show detailed findings with line numbers and snippets
 --json             Output structured JSON instead of formatted report
---no-home          Skip scanning home directory files
+--no-home          Skip personal history/dotfiles; retain the requested project
 --help, -h         Show help
 ```
 
